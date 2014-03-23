@@ -65,7 +65,7 @@ end
 function S:log(fac, sev, tag, pid, msg)
     socket = require 'socket'
     udpsock = socket.udp()
-    udpsock:sendto(self:mklogline(fac, sev, tag, pid, msg), "127.0.0.1", 514)
+    udpsock:sendto(self:mklogline(fac, sev, tag, pid, msg), "127.0.0.1", 5140)
 end
 
 function S.notice(msg)
