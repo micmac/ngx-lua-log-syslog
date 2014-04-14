@@ -44,11 +44,19 @@ func writetoscribe(queue LogStream) {
 	}
 }
 
+type statusdesc struct {
+	Blocked    int64
+	Scribesent int64
+}
+
+var status statusdesc
+
 func main() {
 	config = ReadConfig("etc/s2s.ini")
 	log.Println("Hello World!")
-	scribequeue := make(LogStream)
+	scribequeue := make(LogStream, 100000)
 	go writetoscribe(scribequeue)
+	//go listenScribe("logfile.txt")
 
 	//u = net.ListenUDP("udp4", net.UDPAddr{})
 	udpaddr, err := net.ResolveUDPAddr("udp4", ":5140")
@@ -56,10 +64,35 @@ func main() {
 	handleError(err)
 	log.Println(udpsock)
 	buf := make([]byte, 4096)
-	for {
-		udpsock.Read(buf)
-		log.Println(string(buf))
-		scribequeue <- LogEntry(buf)
-	}
+	readfailures := 0
+	go (func(s *statusdesc) {
+		t := time.Tick(time.Second)
+		for {
+			<-t
+			log.Printf("Sent: %d, Blocked: %d, len: %d", s.Scribesent, s.Blocked, len(scribequeue))
+			s.Scribesent = 0
+		}
+	})(&status)
 
+	for {
+		length, err := udpsock.Read(buf)
+		if err != nil {
+			readfailures++
+			if readfailures > 15 {
+				log.Fatalf("Too many UDP read errors: %s", err)
+			}
+			if readfailures > 10 {
+				time.Sleep(time.Second)
+			}
+			continue
+		}
+		readfailures = 0
+		//log.Println(string(buf))
+		select {
+		case scribequeue <- LogEntry(buf[:length]):
+		default:
+			//log.Println("log queue blocked")
+			status.Blocked++
+		}
+	}
 }

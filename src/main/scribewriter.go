@@ -29,7 +29,6 @@ func (S ScribeLogger) FormatLog(logentry LogEntry) (logline string) {
 		S.Category,
 		logentry,
 	)
-	log.Printf("formatLog: %s", logline)
 	return
 
 }
@@ -37,6 +36,7 @@ func (S ScribeLogger) FormatLog(logentry LogEntry) (logline string) {
 func (S ScribeLogger) Log(msg string) error {
 	var logentry = scribe.LogEntry{S.Category, strings.TrimRight(msg, "\n") + "\n"}
 	_, err := S.ScribeClient.Log([]*scribe.LogEntry{&logentry})
+	status.Scribesent++
 	return err
 }
 
