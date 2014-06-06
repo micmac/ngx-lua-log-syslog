@@ -14,6 +14,17 @@ if not ngx then
     ngx.var.uri = "/foo/bar"
     ngx.var.remote_addr = "1.3.2.4"
 end
+
+mockudpsocket = {}
+function mockudpsocket:sendto(msg, host, port)
+  self.last_sent_msg = {msg, host, port}
+end
+
+socket = {}
+socket.udp = function() return mockudpsocket end
+
+syslog.socket = socket
+
       
 -- log_format combined
 -- '$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"'
@@ -37,4 +48,4 @@ local logtag = ngx.var.access_logtag or "nginx-lua"
 
 
 syslog:log(logfacility, loglevel, logtag, 0, logline)
-
+print(table.concat(mockudpsocket.last_sent_msg, " // "))
