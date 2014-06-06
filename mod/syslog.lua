@@ -36,6 +36,9 @@ LOG_LOCAL6   =  (22 *8) -- reserved for local use */
 LOG_LOCAL7   =  (23 *8) -- reserved for local use */
 
 S.myhostname = "localhost"
+S.socket = require 'socket'
+S.loghost = "127.0.0.1"
+S.logport = 514
 
 function S.mkprio(fac, sev)
     return fac + sev
@@ -52,7 +55,7 @@ end
 
 -- timestamp is now added by syslogd (rsyslog)
 function S:mklogline(fac, sev, tag, pid, msg)
-    prio_field = string.format("<%d>", S.mkprio(fac, sev))
+    prio_field = string.format("<%d>", self.mkprio(fac, sev))
     if pid and (pid > 0) then
         pid_field = string.format("[%d]", pid)
     else
@@ -63,9 +66,8 @@ function S:mklogline(fac, sev, tag, pid, msg)
 end
 
 function S:log(fac, sev, tag, pid, msg)
-    socket = require 'socket'
-    udpsock = socket.udp()
-    udpsock:sendto(self:mklogline(fac, sev, tag, pid, msg), "127.0.0.1", 5140)
+    udpsock = self.socket.udp()
+    udpsock:sendto(self:mklogline(fac, sev, tag, pid, msg), self.loghost, self.logport)
 end
 
 function S.notice(msg)
